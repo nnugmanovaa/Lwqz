@@ -9,6 +9,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -33,6 +35,22 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category findByName(String name) throws SystemServiceException {
-        return this.categoryRepository.findCategoryByName(name).orElseThrow(null);
+        return this.categoryRepository.findCategoryByName(name).orElseThrow(
+                () -> SystemServiceException.builder()
+                        .message("No category with such name")
+                        .errorCode(ErrorCode.ENTITY_NOT_FOUND)
+                        .build()
+        );
+    }
+
+    @Override
+    public Category addCategory(String name) throws SystemServiceException {
+        if(categoryRepository.findCategoryByName(name).isPresent()){
+            throw SystemServiceException.builder()
+                    .errorCode(ErrorCode.CATEGORY_ALREADY_EXISTS)
+                    .message("Such category already exists")
+                    .build();
+        }
+        return this.categoryRepository.save(Category.builder().name(name).build());
     }
 }

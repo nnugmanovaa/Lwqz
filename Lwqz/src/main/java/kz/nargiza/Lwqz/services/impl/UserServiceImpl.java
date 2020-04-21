@@ -14,8 +14,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
@@ -67,7 +65,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User findByUsername(String username) {
-        return userRepository.findUserByUsernameAndActiveIsTrue(username).orElse(null);
+        return userRepository.findUserByUsernameAndActiveIsTrue(username).orElseThrow(() ->
+                SystemServiceException.builder()
+                        .errorCode(ErrorCode.ENTITY_NOT_FOUND)
+                        .message("User with  username " + username + " not found")
+                        .build()
+        );
     }
 
     @Override

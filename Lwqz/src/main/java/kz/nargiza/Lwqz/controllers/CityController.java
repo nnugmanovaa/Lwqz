@@ -1,34 +1,42 @@
 package kz.nargiza.Lwqz.controllers;
 
+import kz.nargiza.Lwqz.models.dtos.CityDto;
 import kz.nargiza.Lwqz.models.entities.City;
+import kz.nargiza.Lwqz.models.mappers.CityMapper;
 import kz.nargiza.Lwqz.services.CityService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("api/cities")
 @AllArgsConstructor
-public class CityController {
+public class CityController extends BaseController {
 
     private CityService cityService;
+    private CityMapper cityMapper;
 
     @GetMapping
-    public List<City> loadAll(){
-        return this.cityService.findAll();
+    public ResponseEntity<?> loadAll(){
+        return buildResponse(cityMapper.toDtoList(cityService.findAll()), HttpStatus.OK);
     }
 
     @GetMapping("{id}")
-    public City getById(@PathVariable Long id){
-        return this.cityService.findById(id);
+    public ResponseEntity<?> getById(@PathVariable Long id){
+        return buildResponse(cityMapper.toDto(cityService.findById(id)), HttpStatus.OK);
     }
 
-    @GetMapping("{name}")
-    public City getByCityName(@PathVariable String name){
-        return this.cityService.findByName(name);
+
+    @PostMapping
+    public ResponseEntity<?> addCity(@RequestBody @Validated CityDto cityDto){
+        City city = cityMapper.toEntity(cityDto);
+        city = cityService.addCity(city.getName());
+        return buildResponse(cityMapper.toDto(city), HttpStatus.OK);
     }
+
+
 }

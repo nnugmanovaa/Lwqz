@@ -2,41 +2,42 @@ package kz.nargiza.Lwqz.controllers;
 
 import kz.nargiza.Lwqz.models.entities.Image;
 import kz.nargiza.Lwqz.models.entities.Post;
+import kz.nargiza.Lwqz.models.errors.ErrorCode;
+import kz.nargiza.Lwqz.models.exceptions.SystemServiceException;
+import kz.nargiza.Lwqz.models.responses.SuccessResponse;
 import kz.nargiza.Lwqz.repositories.ImageRepository;
 import kz.nargiza.Lwqz.repositories.PostRepository;
+import kz.nargiza.Lwqz.services.ImageService;
 import kz.nargiza.Lwqz.services.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import javax.validation.Valid;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.zip.Deflater;
 
 @RestController
 @RequestMapping("/api/posts")
-public class PostController {
-
-    @Value("${file.upload-dir}")
-    private String uploadPath;
+public class PostController extends BaseController {
 
     private PostService postService;
+    private ImageService imageService;
     private PostRepository postRepository;
     private ImageRepository imageRepository;
 
     @Autowired
-    public PostController(PostService postService, PostRepository postRepository, ImageRepository imageRepository) {
+    public PostController(PostService postService, PostRepository postRepository,
+                          ImageRepository imageRepository, ImageService imageService) {
         this.postService = postService;
         this.postRepository = postRepository;
         this.imageRepository = imageRepository;
+        this.imageService = imageService;
     }
 
     @GetMapping("favorites")
@@ -58,30 +59,11 @@ public class PostController {
                         @RequestParam String category,
                         @RequestParam("file") MultipartFile file) throws IOException {
         Image img = new Image(file.getOriginalFilename(), file.getContentType(),
-                compressBytes(file.getBytes()));
+                imageService.compressBytes(file.getBytes()));
         this.imageRepository.save(img);
         return this.postService.addPost(title, description, price, authentication.getName(), category, city, img);
     }
 
-    public static byte[] compressBytes(byte[] data) {
-        Deflater deflater = new Deflater();
-        deflater.setInput(data);
-        deflater.finish();
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
-        byte[] buffer = new byte[1024];
-        while (!deflater.finished()) {
-            int count = deflater.deflate(buffer);
-            outputStream.write(buffer, 0, count);
-        }
-        try {
-            outputStream.close();
-        } catch (IOException e) {
-        }
-        System.out.println("Compressed Image Byte Size - " + outputStream.toByteArray().length);
-
-        return outputStream.toByteArray();
-    }
 
     @GetMapping
     public List<Post> loadAll(){
@@ -104,10 +86,10 @@ public class PostController {
     }
 
     @DeleteMapping("{id}")
-    public void deletePost(@PathVariable Long id){
-      //  this.postService.deletePost(id);
-        this.postRepository.deleteById(id);
+    public ResponseEntity<?> deletePost(@PathVariable Long id){
+        this.postService.deletePost(id);
         this.imageRepository.deleteById(id);
+        return buildResponse(SuccessResponse.builder().message("post with id " + id + " deleted").build(), HttpStatus.OK);
     }
 
     @PutMapping("{id}")
@@ -129,6 +111,8 @@ public class PostController {
             return postRepository.save(post1);
         }
 
-        return null;
+        throw SystemServiceException.builder().errorCode(ErrorCode.ENTITY_NOT_FOUND)
+                .message("Post with such id not found")
+                .build();
     }
 }

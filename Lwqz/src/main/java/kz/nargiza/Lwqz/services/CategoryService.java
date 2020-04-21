@@ -11,4 +11,6 @@ public interface CategoryService {
     Category findById(Long id) throws SystemServiceException;
 
     Category findByName(String name) throws SystemServiceException;
+
+    Category addCategory(String name) throws SystemServiceException;
 }

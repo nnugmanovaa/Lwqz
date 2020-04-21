@@ -38,4 +38,15 @@ public class CityServiceImpl implements CityService {
                 .build()
         );
     }
+
+    @Override
+    public City addCity(String name) throws SystemServiceException {
+        if(cityRepository.findCityByName(name).isPresent()){
+            throw SystemServiceException.builder()
+                    .errorCode(ErrorCode.CITY_ALREADY_EXISTS)
+                    .message("Such city already exists")
+                    .build();
+        }
+        return this.cityRepository.save(City.builder().name(name).build());
+    }
 }
